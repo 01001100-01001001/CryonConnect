@@ -5,7 +5,6 @@
 [![Website](https://img.shields.io/badge/Website-cryonconnect.com-0ea5e9?style=for-the-badge)](https://cryonconnect.com)
 [![Product](https://img.shields.io/badge/Product-Cryon%20Connect-111827?style=for-the-badge)](https://cryonconnect.com)
 [![Focus](https://img.shields.io/badge/Focus-Secure%20Realtime-8b5cf6?style=for-the-badge)](https://cryonconnect.com)
-[![Positioning](https://img.shields.io/badge/Positioning-Marketing%20%2B%20Enterprise-22c55e?style=for-the-badge)](https://cryonconnect.com)
 
 **Language:** [Tiếng Việt](#-tiếng-việt) | [English](#-english)
 
