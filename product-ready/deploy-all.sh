@@ -71,14 +71,17 @@ build_local_image_from_binary() {
   local local_image="cryon-chat-server:product-ready-local"
   [[ -f "artifacts/cryon-node-linux-amd64" ]] || return 1
   [[ -f "artifacts/version.txt" ]] || return 1
+  [[ -f "artifacts/libnqp_node.so" ]] || return 1
 
   log "Building local image from artifacts/cryon-node-linux-amd64 ..."
   ${DOCKER} build -t "${local_image}" -f - . <<'EOF'
-FROM gcr.io/distroless/base-debian12:nonroot
+FROM gcr.io/distroless/cc-debian12:nonroot
 WORKDIR /app
 COPY --chmod=0755 artifacts/cryon-node-linux-amd64 /app/cryon-node
-COPY --chmod=0644 artifacts/version.txt /app/version.txt
+COPY --chmod=0755 artifacts/libnqp_node.so /app/libnqp_node.so
+COPY artifacts/version.txt /app/version.txt
 ENV CRYON_VERSION_FILE=/app/version.txt
+ENV CRYON_NQ_FFI_LIB=/app/libnqp_node.so
 EXPOSE 4543/tcp
 EXPOSE 8585/tcp
 ENTRYPOINT ["/app/cryon-node"]
@@ -100,15 +103,16 @@ resolve_image() {
     fail "CRYON_SERVER_IMAGE is empty in ${ENV_FILE}"
   fi
 
-  if [[ "${image}" == *"sha-REPLACE_ME"* ]]; then
-    log "CRYON_SERVER_IMAGE still placeholder."
-    build_local_image_from_binary || fail "Set CRYON_SERVER_IMAGE in env/.env or provide artifacts/cryon-node-linux-amd64"
+  local local_image="cryon-chat-server:product-ready-local"
+  if [[ "${image}" == "${local_image}" ]]; then
+    log "CRYON_SERVER_IMAGE points to ${local_image}; rebuilding from local artifacts."
+    build_local_image_from_binary || fail "Local image selected but required artifacts are missing (cryon-node-linux-amd64 + libnqp_node.so)"
     return
   fi
 
-  if [[ "${image}" == "cryon-chat-server:product-ready-local" ]]; then
-    log "Refreshing local product-ready image from bundled binary artifacts..."
-    build_local_image_from_binary || fail "Missing artifacts/cryon-node-linux-amd64 or artifacts/version.txt"
+  if [[ "${image}" == *"sha-REPLACE_ME"* ]]; then
+    log "CRYON_SERVER_IMAGE still placeholder."
+    build_local_image_from_binary || fail "Set CRYON_SERVER_IMAGE in env/.env or provide artifacts/cryon-node-linux-amd64 + artifacts/libnqp_node.so"
     return
   fi
 
@@ -116,7 +120,7 @@ resolve_image() {
     log "Image ${image} not found locally. Trying to pull..."
     if ! ${DOCKER} pull "${image}"; then
       log "Pull failed for ${image}. Attempting local artifact image fallback..."
-      build_local_image_from_binary || fail "Cannot pull ${image} and no local binary artifacts found"
+      build_local_image_from_binary || fail "Cannot pull ${image} and no local binary artifacts found (need cryon-node-linux-amd64 + libnqp_node.so)"
     fi
   fi
 }

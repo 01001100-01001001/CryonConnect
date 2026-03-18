@@ -1,6 +1,8 @@
-﻿created_at_utc=2026-03-18T15:56:42.7187540Z
+created_at_utc=2026-03-18T16:09:49.0345624Z
 image_ref=local-build-cryon-chat-server
 binary_file=cryon-node-linux-amd64
-binary_sha256=17db40ec7e55ea9287a32dc63a5cad46167603fe65d151c1aa44ab39189366b3
+binary_sha256=86f6d3a797a75445dea4fa98e75b2bddfe7dc76b6ba713822464ad540911d2bb
+ffi_library_file=libnqp_node.so
+ffi_library_sha256=3daa441f7d2a68cda5d88e8b67a0c9b2e375a3dc34efa4088cac844b307303e9
 version_file=version.txt
-note=linux_raw_only_fallback_enabled
+note=linux_nqffi_enabled
