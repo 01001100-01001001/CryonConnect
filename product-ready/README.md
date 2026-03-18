@@ -50,6 +50,20 @@ chmod +x deploy-all.sh
 
 ## Where To Change Password / IP / Ports
 
+## Default Admin Login After Install
+
+After first deploy, server bootstraps one account if it does not exist:
+
+- username: `admin`
+- password: `cryonconnect`
+
+Use this account to log in immediately after installation.
+
+Security recommendation:
+
+- Change `CRYON_BOOTSTRAP_ADMIN_PASSWORD` in `env/.env` before production go-live.
+- You can disable bootstrap after first setup by setting `CRYON_BOOTSTRAP_ADMIN_ENABLED=false`.
+
 After first run, edit:
 
 - `product-ready/env/.env`
@@ -62,6 +76,8 @@ Main values:
 - `CRYON_OBS_PORT` -> host port mapped to observability panel (`8585` in container)
 - `CRYON_SERVER_IMAGE` -> pinned remote image (`sha-*` or `vX.Y.Z`) or keep local build flow
 - `CRYON_ALLOW_RAW_ONLY_FALLBACK` -> set `false` to enforce native NQFFI startup
+- `CRYON_BOOTSTRAP_ADMIN_ENABLED` -> enable/disable automatic admin creation on deploy
+- `CRYON_BOOTSTRAP_ADMIN_USERNAME` / `CRYON_BOOTSTRAP_ADMIN_PASSWORD` -> first-login account (default `admin` / `cryonconnect`)
 
 If you need to change bind address inside container, edit:
 

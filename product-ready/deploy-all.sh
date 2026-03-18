@@ -10,6 +10,11 @@ fail() {
   exit 1
 }
 
+sql_escape_literal() {
+  local raw="${1:-}"
+  printf "%s" "${raw}"
+}
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="${SCRIPT_DIR}"
 cd "${ROOT_DIR}"
@@ -66,6 +71,14 @@ if [[ ! -f "${ENV_FILE}" ]]; then
   cp "env/.env.example" "${ENV_FILE}"
   log "Created ${ENV_FILE} from template."
 fi
+
+ensure_bootstrap_admin_env_defaults() {
+  grep -q '^CRYON_BOOTSTRAP_ADMIN_ENABLED=' "${ENV_FILE}" || echo 'CRYON_BOOTSTRAP_ADMIN_ENABLED=true' >> "${ENV_FILE}"
+  grep -q '^CRYON_BOOTSTRAP_ADMIN_USERNAME=' "${ENV_FILE}" || echo 'CRYON_BOOTSTRAP_ADMIN_USERNAME=admin' >> "${ENV_FILE}"
+  grep -q '^CRYON_BOOTSTRAP_ADMIN_PASSWORD=' "${ENV_FILE}" || echo 'CRYON_BOOTSTRAP_ADMIN_PASSWORD=cryonconnect' >> "${ENV_FILE}"
+}
+
+ensure_bootstrap_admin_env_defaults
 
 build_local_image_from_binary() {
   local local_image="cryon-chat-server:product-ready-local"
@@ -139,6 +152,38 @@ wait_for_postgres() {
   return 1
 }
 
+bootstrap_admin_if_enabled() {
+  local enabled username password
+  enabled="$(grep '^CRYON_BOOTSTRAP_ADMIN_ENABLED=' "${ENV_FILE}" | tail -n1 | cut -d'=' -f2- || true)"
+  username="$(grep '^CRYON_BOOTSTRAP_ADMIN_USERNAME=' "${ENV_FILE}" | tail -n1 | cut -d'=' -f2- || true)"
+  password="$(grep '^CRYON_BOOTSTRAP_ADMIN_PASSWORD=' "${ENV_FILE}" | tail -n1 | cut -d'=' -f2- || true)"
+
+  [[ -n "${enabled}" ]] || enabled="true"
+  [[ -n "${username}" ]] || username="admin"
+  [[ -n "${password}" ]] || password="cryonconnect"
+
+  if [[ "${enabled}" != "true" ]]; then
+    log "Bootstrap admin disabled by env."
+    return
+  fi
+
+  local pg_container="${POSTGRES_CONTAINER:-cryon-postgres}"
+  wait_for_postgres "${pg_container}" || fail "Postgres not ready in ${pg_container}"
+
+  local pg_user pg_db
+  pg_user="$(${DOCKER} exec "${pg_container}" sh -lc 'printf %s "${POSTGRES_USER:-postgres}"')"
+  pg_db="$(${DOCKER} exec "${pg_container}" sh -lc 'printf %s "${POSTGRES_DB:-postgres}"')"
+
+  local esc_user esc_pass user_id
+  esc_user="$(sql_escape_literal "${username}")"
+  esc_pass="$(sql_escape_literal "${password}")"
+  user_id="user-${username}"
+
+  ${DOCKER} exec "${pg_container}" sh -lc "psql -v ON_ERROR_STOP=1 -U '${pg_user}' -d '${pg_db}' -c \"CREATE EXTENSION IF NOT EXISTS pgcrypto; INSERT INTO users (user_id, username, password_hash) VALUES ('${user_id}', '${esc_user}', crypt('${esc_pass}', gen_salt('bf'))) ON CONFLICT (username) DO NOTHING;\"" >/dev/null
+
+  log "Bootstrap admin ensured: username=${username}"
+}
+
 restore_seed_if_present() {
   local latest_seed
   latest_seed="$(find state-seed -mindepth 1 -maxdepth 1 -type d 2>/dev/null | sort | tail -n1 || true)"
@@ -190,6 +235,7 @@ log "Starting stack..."
 ${DOCKER} compose --env-file "${ENV_FILE}" -f compose/docker-compose.product-ready.yml up -d
 
 restore_seed_if_present
+bootstrap_admin_if_enabled
 
 log "Deployment completed."
 ${DOCKER} compose --env-file "${ENV_FILE}" -f compose/docker-compose.product-ready.yml ps
