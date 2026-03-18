@@ -1,88 +1,95 @@
-# Product-Ready Deployment Bundle
+# Product-Ready Ubuntu Deploy Guide
 
-This folder is the standardized deployment bundle for rolling out Cryon to any target machine with the same baseline configuration.
+This folder contains the Linux deployment bundle for Cryon server stack:
 
-## Goal
+- `cryon-chat-server`
+- `postgres`
+- `redis`
 
-- Keep deployment reproducible across environments.
-- Use container-first runtime layout.
-- Separate infrastructure configuration from live local machine state.
+The deployment entrypoint is `deploy-all.sh`.
 
-## Structure
+## Tested Environment
 
-- `compose/docker-compose.product-ready.yml`:
-  - Standard container topology (Postgres, Redis, Cryon server).
-- `env/.env.example`:
-  - Baseline environment variables to copy into `.env` per target machine.
+Verified on:
 
-## Do We Need to Pull Local Postgres/Redis Into This Folder?
+- Ubuntu Server 22.04 LTS (Jammy)
+- Docker Engine + Docker Compose plugin installed by `deploy-all.sh`
 
-Short answer: **do not copy raw container data directories** from a live local machine.
+## Files Used By Deploy
 
-Preferred approach:
+Required:
 
-1. Keep baseline runtime configuration in this folder (`compose` + `.env`).
-2. Export state from local containers as portable artifacts:
-   - Postgres: logical dump (`.dump` from `pg_dump`).
-   - Redis: snapshot (`dump.rdb`).
-3. Restore those artifacts on the target machine only when you intentionally need seeded data.
+- `compose/docker-compose.product-ready.yml`
+- `env/.env.example` (template)
+- `deploy-all.sh`
+- `artifacts/cryon-node-linux-amd64`
+- `artifacts/libnqp_node.so`
+- `artifacts/version.txt`
 
-Why:
+Optional:
 
-- Raw volume copies are host-specific and fragile.
-- Dumps/snapshots are safer, reproducible, and easier to version or archive.
+- `state-seed/<timestamp>/postgres-*.dump`
+- `state-seed/<timestamp>/redis-dump.rdb`
 
-## Quick Start
-
-1. Copy `env/.env.example` to `env/.env` and fill real values.
-2. (Optional) Export local state:
-   - Run `scripts/export-local-postgres-redis.ps1`.
-3. Deploy:
-   - `docker compose --env-file env/.env -f compose/docker-compose.product-ready.yml up -d`
-
-## Production Tag Policy
-
-For production-like/go-live deployments, use pinned image tags only:
-
-- `sha-<commit>`
-- `vX.Y.Z`
-
-Avoid `latest` for go-live workflows.
-
-## GitHub Distribution Model
-
-For VPS pull-and-run workflow:
-
-- Keep scripts/config in this repository (`product-ready/*`).
-- Keep real secrets only on VPS in `env/.env` (never commit).
-- Commit runtime binary artifacts in `artifacts/` so VPS can pull-and-run directly; keep sensitive data seeds (`state-seed/`) out of git.
-
-Run on Ubuntu VPS:
+## Deploy On Ubuntu
 
 ```bash
 git clone https://github.com/01001100-01001001/CryonConnect
 cd CryonConnect/product-ready
-chmod +x setup.sh deploy-all.sh
-./setup.sh
+chmod +x deploy-all.sh
+./deploy-all.sh
 ```
 
+`deploy-all.sh` will:
 
-## Included Runtime Binary
+- install Docker/Compose if missing
+- create `env/.env` from `env/.env.example` (first run)
+- build local runtime image from `artifacts/*` when needed
+- start the stack with `docker compose`
+- restore latest seed automatically if `state-seed` exists
 
-This repository includes server runtime artifacts in `product-ready/artifacts/`:
+## Where To Change Password / IP / Ports
 
-- `cryon-node-linux-amd64`
-- `version.txt`
-- `binary-manifest.txt`
+After first run, edit:
 
-`deploy-all.sh` can automatically build a local container image from these artifacts when `CRYON_SERVER_IMAGE` is placeholder or remote pull is unavailable.
+- `product-ready/env/.env`
 
+Main values:
 
-## Linux-Only Deploy
+- `POSTGRES_PASSWORD` -> change database password
+- `POSTGRES_USER` / `POSTGRES_DB` -> adjust DB account/database if needed
+- `CRYON_NQ_INGRESS_PORT` -> host port mapped to Cryon ingress (`4543` in container)
+- `CRYON_OBS_PORT` -> host port mapped to observability panel (`8585` in container)
+- `CRYON_SERVER_IMAGE` -> pinned remote image (`sha-*` or `vX.Y.Z`) or keep local build flow
+- `CRYON_ALLOW_RAW_ONLY_FALLBACK` -> set `false` to enforce native NQFFI startup
 
-This repository keeps deployment path focused on Ubuntu/Linux shell scripts:
+If you need to change bind address inside container, edit:
 
-- `setup.sh`
-- `deploy-all.sh`
+- `CRYON_NQ_INGRESS_ADDR`
+- `CRYON_OBS_ADDR`
 
-PowerShell helper scripts are intentionally excluded from this repository.
+in `env/.env`.
+
+Then apply changes:
+
+```bash
+cd CryonConnect/product-ready
+./deploy-all.sh
+```
+
+## Verify After Install
+
+```bash
+docker compose --env-file env/.env -f compose/docker-compose.product-ready.yml ps
+docker logs --tail 120 cryon-chat-server
+```
+
+Expected server log lines:
+
+- `Transport mode: nq_only_ffi`
+- `=== Cryon Chat Server Started ===`
+
+## Notes
+
+- For go-live, prefer pinned image tags (`sha-*` or `vX.Y.Z`), not `latest`.
+- Keep secrets only in `env/.env` on the server, do not commit secrets.
