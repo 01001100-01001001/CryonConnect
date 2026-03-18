@@ -82,7 +82,8 @@ COPY --chmod=0755 artifacts/libnqp_node.so /app/libnqp_node.so
 COPY artifacts/version.txt /app/version.txt
 ENV CRYON_VERSION_FILE=/app/version.txt
 ENV CRYON_NQ_FFI_LIB=/app/libnqp_node.so
-EXPOSE 4543/tcp
+EXPOSE 4543/udp
+EXPOSE 4544/tcp
 EXPOSE 8585/tcp
 ENTRYPOINT ["/app/cryon-node"]
 EOF

@@ -58,7 +58,7 @@ Main values:
 
 - `POSTGRES_PASSWORD` -> change database password
 - `POSTGRES_USER` / `POSTGRES_DB` -> adjust DB account/database if needed
-- `CRYON_NQ_INGRESS_PORT` -> host port mapped to Cryon ingress (`4543` in container)
+- `CRYON_NQ_INGRESS_PORT` -> public port (default `443`) used for UDP primary (`container:4543/udp`) and TCP fallback (`container:4544/tcp`)
 - `CRYON_OBS_PORT` -> host port mapped to observability panel (`8585` in container)
 - `CRYON_SERVER_IMAGE` -> pinned remote image (`sha-*` or `vX.Y.Z`) or keep local build flow
 - `CRYON_ALLOW_RAW_ONLY_FALLBACK` -> set `false` to enforce native NQFFI startup
@@ -66,6 +66,7 @@ Main values:
 If you need to change bind address inside container, edit:
 
 - `CRYON_NQ_INGRESS_ADDR`
+- `CRYON_RAW_INGRESS_ADDR`
 - `CRYON_OBS_ADDR`
 
 in `env/.env`.
@@ -91,5 +92,6 @@ Expected server log lines:
 
 ## Notes
 
+- Default transport profile is UDP primary on port `443` with TCP fallback on the same public port.
 - For go-live, prefer pinned image tags (`sha-*` or `vX.Y.Z`), not `latest`.
 - Keep secrets only in `env/.env` on the server, do not commit secrets.
