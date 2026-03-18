@@ -14,14 +14,6 @@ This folder is the standardized deployment bundle for rolling out Cryon to any t
   - Standard container topology (Postgres, Redis, Cryon server).
 - `env/.env.example`:
   - Baseline environment variables to copy into `.env` per target machine.
-- `scripts/export-local-postgres-redis.ps1`:
-  - Export local Postgres + Redis runtime data into portable snapshot files.
-- `scripts/restore-postgres.ps1`:
-  - Restore a Postgres dump into a running Postgres container.
-- `scripts/restore-redis.ps1`:
-  - Restore Redis snapshot (`dump.rdb`) into a Redis container.
-- `scripts/deploy.ps1`:
-  - One-command stack startup, optional seed restore.
 
 ## Do We Need to Pull Local Postgres/Redis Into This Folder?
 
@@ -47,12 +39,6 @@ Why:
    - Run `scripts/export-local-postgres-redis.ps1`.
 3. Deploy:
    - `docker compose --env-file env/.env -f compose/docker-compose.product-ready.yml up -d`
-
-Or use the helper script:
-
-- `powershell -ExecutionPolicy Bypass -File product-ready/scripts/deploy.ps1`
-- With seed restore:
-  - `powershell -ExecutionPolicy Bypass -File product-ready/scripts/deploy.ps1 -WithSeedRestore -SeedDir "product-ready/state-seed/<timestamp>"`
 
 ## Production Tag Policy
 
@@ -90,3 +76,13 @@ This repository includes server runtime artifacts in `product-ready/artifacts/`:
 - `binary-manifest.txt`
 
 `deploy-all.sh` can automatically build a local container image from these artifacts when `CRYON_SERVER_IMAGE` is placeholder or remote pull is unavailable.
+
+
+## Linux-Only Deploy
+
+This repository keeps deployment path focused on Ubuntu/Linux shell scripts:
+
+- `setup.sh`
+- `deploy-all.sh`
+
+PowerShell helper scripts are intentionally excluded from this repository.
