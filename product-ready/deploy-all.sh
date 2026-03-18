@@ -76,8 +76,8 @@ build_local_image_from_binary() {
   ${DOCKER} build -t "${local_image}" -f - . <<'EOF'
 FROM gcr.io/distroless/base-debian12:nonroot
 WORKDIR /app
-COPY artifacts/cryon-node-linux-amd64 /app/cryon-node
-COPY artifacts/version.txt /app/version.txt
+COPY --chmod=0755 artifacts/cryon-node-linux-amd64 /app/cryon-node
+COPY --chmod=0644 artifacts/version.txt /app/version.txt
 ENV CRYON_VERSION_FILE=/app/version.txt
 EXPOSE 4543/tcp
 EXPOSE 8585/tcp
@@ -103,6 +103,12 @@ resolve_image() {
   if [[ "${image}" == *"sha-REPLACE_ME"* ]]; then
     log "CRYON_SERVER_IMAGE still placeholder."
     build_local_image_from_binary || fail "Set CRYON_SERVER_IMAGE in env/.env or provide artifacts/cryon-node-linux-amd64"
+    return
+  fi
+
+  if [[ "${image}" == "cryon-chat-server:product-ready-local" ]]; then
+    log "Refreshing local product-ready image from bundled binary artifacts..."
+    build_local_image_from_binary || fail "Missing artifacts/cryon-node-linux-amd64 or artifacts/version.txt"
     return
   fi
 
