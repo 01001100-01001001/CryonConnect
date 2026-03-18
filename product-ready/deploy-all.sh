@@ -136,7 +136,7 @@ wait_for_postgres() {
 
 restore_seed_if_present() {
   local latest_seed
-  latest_seed="$(ls -1d state-seed/* 2>/dev/null | sort | tail -n1 || true)"
+  latest_seed="$(find state-seed -mindepth 1 -maxdepth 1 -type d 2>/dev/null | sort | tail -n1 || true)"
   if [[ -z "${latest_seed}" ]]; then
     log "No state-seed directory found. Skipping restore."
     return
