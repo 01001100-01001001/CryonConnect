@@ -1,0 +1,60 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: cryon-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - cryon_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: cryon-redis
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - cryon_redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  cryon-chat-server:
+    image: ${CRYON_SERVER_IMAGE}
+    container_name: cryon-chat-server
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable
+      REDIS_ADDR: redis:6379
+
+      CRYON_NQ_INGRESS_ADDR: ${CRYON_NQ_INGRESS_ADDR}
+      CRYON_DEDUPE_TTL_SECONDS: ${CRYON_DEDUPE_TTL_SECONDS}
+      CRYON_HELLO_NONCE_TTL_SECONDS: ${CRYON_HELLO_NONCE_TTL_SECONDS}
+      CRYON_HELLO_MAX_SKEW_SECONDS: ${CRYON_HELLO_MAX_SKEW_SECONDS}
+      CRYON_SESSION_TTL_SECONDS: ${CRYON_SESSION_TTL_SECONDS}
+      CRYON_REQUIRE_ATTESTATION: ${CRYON_REQUIRE_ATTESTATION}
+
+      CRYON_OBS_PANEL: ${CRYON_OBS_PANEL}
+      CRYON_OBS_ADDR: ${CRYON_OBS_ADDR}
+
+    ports:
+      - "${CRYON_NQ_INGRESS_PORT}:4543/tcp"
+      - "${CRYON_OBS_PORT}:8585/tcp"
+
+volumes:
+  cryon_pg_data:
+  cryon_redis_data:

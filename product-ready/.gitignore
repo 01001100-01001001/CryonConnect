@@ -1,0 +1,7 @@
+env/.env
+artifacts/*
+!artifacts/.gitkeep
+!artifacts/README.md
+state-seed/*
+!state-seed/.gitkeep
+!state-seed/README.md
