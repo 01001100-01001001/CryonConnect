@@ -22,8 +22,6 @@ This folder is the standardized deployment bundle for rolling out Cryon to any t
   - Restore Redis snapshot (`dump.rdb`) into a Redis container.
 - `scripts/deploy.ps1`:
   - One-command stack startup, optional seed restore.
-- `checklists/product-ready-checklist.md`:
-  - Step-by-step pre-flight and go-live checks.
 
 ## Do We Need to Pull Local Postgres/Redis Into This Folder?
 
@@ -71,7 +69,7 @@ For VPS pull-and-run workflow:
 
 - Keep scripts/config in this repository (`product-ready/*`).
 - Keep real secrets only on VPS in `env/.env` (never commit).
-- Keep large/sensitive artifacts (`artifacts/`, `state-seed/`) out of git and publish via GitHub Releases or internal artifact storage.
+- Commit runtime binary artifacts in `artifacts/` so VPS can pull-and-run directly; keep sensitive data seeds (`state-seed/`) out of git.
 
 Run on Ubuntu VPS:
 
@@ -81,3 +79,14 @@ cd CryonConnect/product-ready
 chmod +x setup.sh deploy-all.sh
 ./setup.sh
 ```
+
+
+## Included Runtime Binary
+
+This repository includes server runtime artifacts in `product-ready/artifacts/`:
+
+- `cryon-node-linux-amd64`
+- `version.txt`
+- `binary-manifest.txt`
+
+`deploy-all.sh` can automatically build a local container image from these artifacts when `CRYON_SERVER_IMAGE` is placeholder or remote pull is unavailable.

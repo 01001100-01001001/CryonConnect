@@ -1,0 +1,5 @@
+﻿created_at_utc=2026-03-18T14:54:28.7206194Z
+image_ref=cryon-chat-server:latest
+binary_file=cryon-node-linux-amd64
+binary_sha256=9c4917d8424dad48dd18a114727397446ee45d7f56797231d7450bdade6fdd46
+version_file=version.txt
